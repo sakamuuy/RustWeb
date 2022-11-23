@@ -1,10 +1,10 @@
 use std:: {
   collections::HashMap,
-  sync::{Arc, RwLock},
+  sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
-
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use anyhow::Context;
 
 #[derive(Debug, Error)]
 enum RepositoryError {
@@ -56,29 +56,56 @@ pub struct TodoRepositoryForMemory {
 }
 
 impl TodoRepositoryForMemory {
-    pub fn new() -> Self {
-        TodoRepositoryForMemory { store: Arc::default() }
-    }
+  pub fn new() -> Self {
+      TodoRepositoryForMemory { store: Arc::default() }
+  }
+
+  fn write_store_ref(&self) -> RwLockWriteGuard<TodoDatas> {
+    self.store.write().unwrap()
+  }
+
+  fn read_store_ref(&self) -> RwLockReadGuard<TodoDatas> {
+    self.store.read().unwrap()
+  }
 }
 
 impl TodoRepository for TodoRepositoryForMemory {
-    fn create(&self, payload: CreateTodo) -> Todo {
-        todo!();
-    }
+  fn create(&self, payload: CreateTodo) -> Todo {
+    let mut store = self.write_store_ref();
+    let id = (store.len() + 1) as i32;
+    let todo = Todo::new(id, payload.text.clone());
+    store.insert(id, todo.clone());
+    todo
+  }
 
-    fn find(&self, id: i32) -> Option<Todo> {
-        todo!();
-    }
+  fn find(&self, id: i32) -> Option<Todo> {
+    let store = self.read_store_ref();
+    store.get(&id).map(|todo| todo.clone())
+  }
 
-    fn all(&self) -> Vec<Todo> {
-        todo!();
-    }
+  fn all(&self) -> Vec<Todo> {
+    let store = self.read_store_ref();
+    Vec::from_iter(store.values().map(|todo| todo.clone()))
+  }
 
-    fn update(&self, id: i32, payload: UpdateTodo) -> anyhow::Result<Todo> {
-        todo!();
-    }
+  fn update(&self, id: i32, payload: UpdateTodo) -> anyhow::Result<Todo> {
+    let mut store = self.write_store_ref();
+    let todo = store
+      .get(&id)
+      .context(RepositoryError::NotFound(id))?;
+    let text = payload.text.unwrap_or(todo.text.clone());
+    let completed = payload.completed.unwrap_or(todo.completed);
+    let todo = Todo {
+      id,
+      text,completed
+    };
+    store.insert(id, todo.clone());
+    Ok(todo)
+  }
 
-    fn delete(&self, id: i32) -> anyhow::Result<()> {
-        todo!();
-    }
+  fn delete(&self, id: i32) -> anyhow::Result<()> {
+    let mut store = self.write_store_ref();
+    store.remove(&id).ok_or(RepositoryError::NotFound(id))?;
+    Ok(())
+  }
 }

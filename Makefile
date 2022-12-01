@@ -11,3 +11,7 @@ dev:
 
 test:
 	cargo test
+
+# stand alone test
+test-s:
+	cargo test --no-default-features

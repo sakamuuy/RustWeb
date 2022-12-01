@@ -46,7 +46,7 @@ fn create_app<T: TodoRepository>(repository: T) -> Router {
             "/todos/:id",
             get(find_todo::<T>)
                 .delete(delete_todo::<T>)
-                .patch(update_todo::<T>)
+                .patch(update_todo::<T>),
         )
         .layer(Extension(Arc::new(repository)))
 }

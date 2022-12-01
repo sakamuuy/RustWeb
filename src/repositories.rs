@@ -66,7 +66,8 @@ mod test {
         dotenv().ok();
         let database_url = &env::var("DATABASE_URL").expect("undefined [DATABASE_URL]");
         let pool = PgPool::connect(database_url)
-            .await.expect(&format!("fail connect database, url is [{}]", database_url));
+            .await
+            .expect(&format!("fail connect database, url is [{}]", database_url));
 
         let repository = TodoRepositoryForDb::new(pool.clone());
         let todo_text = "[crud_scenario] text";
@@ -98,7 +99,7 @@ mod test {
                 todo.id,
                 UpdateTodo {
                     text: Some(updated_text.to_string()),
-                    completed: Some(true)
+                    completed: Some(true),
                 },
             )
             .await
@@ -117,7 +118,7 @@ mod test {
         let todo_rows = sqlx::query(
             r#"
                 select * from todos where id=$1
-            "#
+            "#,
         )
         .bind(todo.id)
         .fetch_all(&pool)
@@ -181,7 +182,7 @@ impl TodoRepository for TodoRepositoryForDb {
                 update todos set text=$1, completed=$2
                 where id=$3
                 returning *
-            "#
+            "#,
         )
         .bind(payload.text.unwrap_or(old_todo.text))
         .bind(payload.completed.unwrap_or(old_todo.completed))
@@ -196,14 +197,14 @@ impl TodoRepository for TodoRepositoryForDb {
         sqlx::query(
             r#"
                 delete from todos where id=$1
-            "#
+            "#,
         )
         .bind(id)
         .execute(&self.pool)
         .await
         .map_err(|e| match e {
             sqlx::Error::RowNotFound => RepositoryError::NotFound(id),
-            _ => RepositoryError::Unexpected(e.to_string())
+            _ => RepositoryError::Unexpected(e.to_string()),
         })?;
 
         Ok(())
@@ -307,6 +308,7 @@ pub mod test_utils {
     }
 
     #[cfg(test)]
+    #[cfg(feature = "database-test")]
     mod test {
         use super::*;
 

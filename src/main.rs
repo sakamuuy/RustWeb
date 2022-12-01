@@ -46,7 +46,7 @@ fn create_app<T: TodoRepository>(repository: T) -> Router {
             "/todos/:id",
             get(find_todo::<T>)
                 .delete(delete_todo::<T>)
-                .patch(update_todo::<T>),
+                .patch(update_todo::<T>)
         )
         .layer(Extension(Arc::new(repository)))
 }
@@ -58,7 +58,7 @@ async fn root() -> &'static str {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::repositories::{CreateTodo, Todo, test_utils::TodoRepositoryForMemory};
+    use crate::repositories::{test_utils::TodoRepositoryForMemory, CreateTodo, Todo};
     use axum::response::Response;
     use axum::{
         body::Body,
